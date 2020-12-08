@@ -1,6 +1,7 @@
 ; vim: set syntax=asm_ca65:
 .include "vectors.inc"
 .include "uart.inc"
+.include "console.inc"
 .import __ACIA_START__
 
 .zeropage
@@ -53,9 +54,22 @@ reset_handler:
     lda #0
     tax
     jsr uart_init
-    lda #'a'
-    jsr uart_write
+
+    ldx #$10
+@delay:
+    dex
+    bne @delay
+
+
+    lda #<msg
+    ldy #>msg
+
+    jsr console_println
+
 
 forever:
     wai
     jmp forever
+
+.rodata
+msg: .asciiz "Hello, world!"

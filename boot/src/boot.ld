@@ -8,6 +8,7 @@ MEMORY {
 
 SEGMENTS {
     CODE: load = ROM, type = ro;
+    RODATA: load = ROM, type = ro;
     DATA: load = ROM, run = RAM1, type = rw, define = yes;
     BSS: load = RAM1, type = bss;
     VECTORS:  load = ROM, type = ro, start = $fffa;
