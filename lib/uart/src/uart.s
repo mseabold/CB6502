@@ -1,5 +1,6 @@
 ; vim: set syntax=asm_ca65:
 .include "uart.inc"
+.include "via.inc"
 
 ; TODO Move ACIA general stuff out to a separate module, in case more than 1 ACIA is ever used for
 ;      different purposes (not sure why)
@@ -101,7 +102,7 @@ uart_write:
     sta ACIA_UART+ACIA_REGS::DATA
     ; TODO Time this out better
     phx
-    ldx #20
+    ldx #40
 @loop:
     dex
     beq @done

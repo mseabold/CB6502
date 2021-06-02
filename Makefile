@@ -11,36 +11,52 @@ BOOT_SRCS := \
 UART_SRC := \
 	lib/uart/src/uart.s
 
+VIA_SRC := \
+	lib/via/src/via.s
+
 CONSOLE_SRC := \
 	lib/console/src/console.s
+
+SPI_SRC := \
+	lib/spi/src/spi.s
 
 INCLD := \
 	boot/inc \
 	lib/uart/inc \
-	lib/console/inc
+	lib/console/inc \
+	lib/via/inc \
+	lib/spi/inc
 
 BOOT_OBJS := $(BOOT_SRCS:%.s=out/obj/%.o)
 UART_OBJS := $(UART_SRC:%.s=out/obj/%.o)
 CONSOLE_OBJS := $(CONSOLE_SRC:%.s=out/obj/%.o)
+VIA_OBJS := $(VIA_SRC:%.s=out/obj/%.o)
+SPI_OBJS := $(SPI_SRC:%.s=out/obj/%.o)
 
 BOOT_LIBS := \
 	$(OUTPUT)/lib/uart.lib \
-	$(OUTPUT)/lib/console.lib
+	$(OUTPUT)/lib/console.lib \
+	$(OUTPUT)/lib/via.lib \
+	$(OUTPUT)/lib/spi.lib \
 
 .PHONY:
 all: $(OUTPUT)/bin/boot.bin
+
+ALL_OBJS := $(BOOT_OBJS) $(UART_OBJS) $(CONSOLE_OBJS) $(VIA_OBJS) $(SPI_OBJS)
+
+-include $(ALL_OBJS:%.o=%.d)
 
 .PHONY:
 clean:
 	rm -rf $(OUTPUT)
 
-$(OUTPUT)/bin/boot.bin: $(BOOT_OBJS) boot/src/boot.ld $(BOOT_LIBS)
+$(OUTPUT)/bin/boot.bin $(OUTPUT)/bin/boot.map: $(BOOT_OBJS) boot/src/boot.ld $(BOOT_LIBS)
 	@mkdir -p $(@D)
-	$(LD) -o $@ -C boot/src/boot.ld -L$(OUTPUT)/lib  $(BOOT_OBJS) $(BOOT_LIBS)
+	$(LD) -o $@ -C boot/src/boot.ld -L$(OUTPUT)/lib -vm -m$(OUTPUT)/bin/boot.map  $(BOOT_OBJS) $(BOOT_LIBS)
 
 $(OUTPUT)/obj/%.o: %.s
 	@mkdir -p $(@D)
-	$(ASM) $(INCLD:%=-I %) $(CPUFLAGS) -o $@ $<
+	$(ASM) $(INCLD:%=-I %) $(CPUFLAGS) --create-full-dep $(@:%.o=%.d) -o $@ $<
 
 $(OUTPUT)/lib/uart.lib: $(UART_OBJS)
 	@mkdir -p $(@D)
@@ -49,3 +65,12 @@ $(OUTPUT)/lib/uart.lib: $(UART_OBJS)
 $(OUTPUT)/lib/console.lib: $(CONSOLE_OBJS)
 	@mkdir -p $(@D)
 	$(AR) r $@ $^
+
+$(OUTPUT)/lib/via.lib: $(VIA_OBJS)
+	@mkdir -p $(@D)
+	$(AR) r $@ $^
+
+$(OUTPUT)/lib/spi.lib: $(SPI_OBJS)
+	@mkdir -p $(@D)
+	$(AR) r $@ $^
+

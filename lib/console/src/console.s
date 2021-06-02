@@ -44,9 +44,35 @@ console_print:
 
 console_println:
     jsr console_print
+console_newline:
     lda #CR
     jsr uart_write
     lda #LF
     jsr uart_write
 
     rts
+
+console_printhex:
+    phx
+    phy
+    tay
+    lsr
+    lsr
+    lsr
+    lsr
+    and #$0f
+    clc
+    tax
+    lda hexchars,X
+    jsr uart_write
+    tya
+    and #$0f
+    tax
+    lda hexchars,X
+    jsr uart_write
+    ply
+    plx
+    rts
+
+.rodata
+hexchars: .asciiz "0123456789ABCDEF"

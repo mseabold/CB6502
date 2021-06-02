@@ -3,3 +3,5 @@
 .global console_write
 .global console_print
 .global console_println
+.global console_printhex
+.global console_newline
