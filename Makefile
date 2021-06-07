@@ -20,24 +20,30 @@ CONSOLE_SRC := \
 SPI_SRC := \
 	lib/spi/src/spi.s
 
+SDCARD_SRC := \
+	lib/sdcard/src/sdcard.s
+
 INCLD := \
 	boot/inc \
 	lib/uart/inc \
 	lib/console/inc \
 	lib/via/inc \
-	lib/spi/inc
+	lib/spi/inc \
+	lib/sdcard/inc
 
 BOOT_OBJS := $(BOOT_SRCS:%.s=out/obj/%.o)
 UART_OBJS := $(UART_SRC:%.s=out/obj/%.o)
 CONSOLE_OBJS := $(CONSOLE_SRC:%.s=out/obj/%.o)
 VIA_OBJS := $(VIA_SRC:%.s=out/obj/%.o)
 SPI_OBJS := $(SPI_SRC:%.s=out/obj/%.o)
+SDCARD_OBJS := $(SDCARD_SRC:%.s=out/obj/%.o)
 
 BOOT_LIBS := \
-	$(OUTPUT)/lib/uart.lib \
+	$(OUTPUT)/lib/sdcard.lib \
 	$(OUTPUT)/lib/console.lib \
-	$(OUTPUT)/lib/via.lib \
+	$(OUTPUT)/lib/uart.lib \
 	$(OUTPUT)/lib/spi.lib \
+	$(OUTPUT)/lib/via.lib \
 
 .PHONY:
 all: $(OUTPUT)/bin/boot.bin
@@ -71,6 +77,10 @@ $(OUTPUT)/lib/via.lib: $(VIA_OBJS)
 	$(AR) r $@ $^
 
 $(OUTPUT)/lib/spi.lib: $(SPI_OBJS)
+	@mkdir -p $(@D)
+	$(AR) r $@ $^
+
+$(OUTPUT)/lib/sdcard.lib: $(SDCARD_OBJS)
 	@mkdir -p $(@D)
 	$(AR) r $@ $^
 

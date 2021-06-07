@@ -32,6 +32,7 @@ spi_init:
 spi_transfer_byte:
     sta spi_buffer
     phx
+    phy
 
     ldx #8
 
@@ -62,6 +63,7 @@ spi_transfer_byte:
     and #$f0
     sta SPI_VIA+VIA_REGS::DATAB
     lda spi_buffer
+    ply
     plx
     rts
 

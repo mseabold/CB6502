@@ -2,6 +2,9 @@
 .include "vectors.inc"
 .include "uart.inc"
 .include "console.inc"
+.include "via.inc"
+.include "spi.inc"
+.include "sdcard.inc"
 .import __ACIA_START__
 
 .zeropage
@@ -9,11 +12,19 @@ load_ptr: .res 2
 run_ptr: .res 2
 load_size: .res 2
 
+.bss
+read_params: .res 6
+read_buffer: .res 512
+
 .code
 .import __DATA_LOAD__
 .import __DATA_RUN__
 .import __DATA_SIZE__
 reset_handler:
+    sei
+    cld
+    ldx #$ff
+    txs
     lda #<__DATA_LOAD__
     sta load_ptr
     lda #>__DATA_LOAD__
@@ -54,22 +65,46 @@ reset_handler:
     lda #0
     tax
     jsr uart_init
+    jsr spi_init
+    jsr sdcard_init
 
-    ldx #$10
-@delay:
-    dex
-    bne @delay
+    lda #0
+    sta read_params
+    sta read_params+1
+    sta read_params+2
+    sta read_params+3
 
+    lda #<read_buffer
+    sta read_params+4
+    lda #>read_buffer
+    sta read_params+5
 
-    lda #<msg
-    ldy #>msg
+    lda #<read_params
+    ldx #>read_params
 
-    jsr console_println
+    jsr sdcard_read_block
+    ldx #0
 
+@print_loop:
+    lda read_buffer,X
+    phx
+    jsr console_printhex
+    jsr console_newline
+    plx
+    inx
+    bne @print_loop
+
+    ldx #0
+@print_loop2:
+    lda read_buffer+256,X
+    phx
+    jsr console_printhex
+    jsr console_newline
+    plx
+    inx
+    bne @print_loop2
 
 forever:
     wai
     jmp forever
 
-.rodata
-msg: .asciiz "Hello, world!"
