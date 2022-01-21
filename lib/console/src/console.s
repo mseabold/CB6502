@@ -74,5 +74,20 @@ console_printhex:
     plx
     rts
 
+console_printu32:
+    sta write_buffer
+    sty write_buffer+1
+
+    ldy #3
+@print_loop:
+    lda (write_buffer),Y
+    phy
+    jsr console_printhex
+    ply
+    dey
+    bpl @print_loop
+
+    rts
+
 .rodata
 hexchars: .asciiz "0123456789ABCDEF"

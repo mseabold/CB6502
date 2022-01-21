@@ -23,13 +23,24 @@ SPI_SRC := \
 SDCARD_SRC := \
 	lib/sdcard/src/sdcard.s
 
+FAT_SRC := \
+	lib/fat/src/fat.s
+
+RUNTIME_SRC := \
+	lib/runtime/src/mem.s
+
+APP_SRC := \
+	app/test/src/app.s
+
 INCLD := \
 	boot/inc \
 	lib/uart/inc \
 	lib/console/inc \
 	lib/via/inc \
 	lib/spi/inc \
-	lib/sdcard/inc
+	lib/sdcard/inc \
+	lib/fat/inc \
+	lib/runtime/inc
 
 BOOT_OBJS := $(BOOT_SRCS:%.s=out/obj/%.o)
 UART_OBJS := $(UART_SRC:%.s=out/obj/%.o)
@@ -37,18 +48,27 @@ CONSOLE_OBJS := $(CONSOLE_SRC:%.s=out/obj/%.o)
 VIA_OBJS := $(VIA_SRC:%.s=out/obj/%.o)
 SPI_OBJS := $(SPI_SRC:%.s=out/obj/%.o)
 SDCARD_OBJS := $(SDCARD_SRC:%.s=out/obj/%.o)
+FAT_OBJS := $(FAT_SRC:%.s=out/obj/%.o)
+RUNTIME_OBJS := $(RUNTIME_SRC:%.s=out/obj/%.o)
+APP_OBJS := $(APP_SRC:%.s=out/obj/%.o)
 
 BOOT_LIBS := \
+	$(OUTPUT)/lib/fat.lib \
 	$(OUTPUT)/lib/sdcard.lib \
 	$(OUTPUT)/lib/console.lib \
 	$(OUTPUT)/lib/uart.lib \
 	$(OUTPUT)/lib/spi.lib \
 	$(OUTPUT)/lib/via.lib \
+	$(OUTPUT)/lib/runtime.lib \
+
+APP_LIBS := \
+	$(OUTPUT)/lib/console.lib \
+	$(OUTPUT)/lib/uart.lib \
 
 .PHONY:
-all: $(OUTPUT)/bin/boot.bin
+all: $(OUTPUT)/bin/boot.bin $(OUTPUT)/app/app.bin
 
-ALL_OBJS := $(BOOT_OBJS) $(UART_OBJS) $(CONSOLE_OBJS) $(VIA_OBJS) $(SPI_OBJS)
+ALL_OBJS := $(BOOT_OBJS) $(UART_OBJS) $(CONSOLE_OBJS) $(VIA_OBJS) $(SPI_OBJS) $(SDCARD_OBJS) $(FAT_OBJS) $(RUNTIME_OBJS)
 
 -include $(ALL_OBJS:%.o=%.d)
 
@@ -58,7 +78,11 @@ clean:
 
 $(OUTPUT)/bin/boot.bin $(OUTPUT)/bin/boot.map: $(BOOT_OBJS) boot/src/boot.ld $(BOOT_LIBS)
 	@mkdir -p $(@D)
-	$(LD) -o $@ -C boot/src/boot.ld -L$(OUTPUT)/lib -vm -m$(OUTPUT)/bin/boot.map  $(BOOT_OBJS) $(BOOT_LIBS)
+	$(LD) -o $@ -C boot/src/boot.ld -L$(OUTPUT)/lib -vm -m$(OUTPUT)/bin/boot.map  $(BOOT_OBJS) $(BOOT_LIBS) -Ln wat.wut
+
+$(OUTPUT)/app/app.bin $(OUTPUT)/app/app.map: $(APP_OBJS) app/test/src/app.ld $(APP_LIBS)
+	@mkdir -p $(@D)
+	$(LD) -o $@ -C app/test/src/app.ld -L$(OUTPUT)/lib -vm -m$(OUTPUT)/app/app.map  $(APP_OBJS) $(APP_LIBS)
 
 $(OUTPUT)/obj/%.o: %.s
 	@mkdir -p $(@D)
@@ -84,3 +108,10 @@ $(OUTPUT)/lib/sdcard.lib: $(SDCARD_OBJS)
 	@mkdir -p $(@D)
 	$(AR) r $@ $^
 
+$(OUTPUT)/lib/fat.lib: $(FAT_OBJS)
+	@mkdir -p $(@D)
+	$(AR) r $@ $^
+
+$(OUTPUT)/lib/runtime.lib: $(RUNTIME_OBJS)
+	@mkdir -p $(@D)
+	$(AR) r $@ $^

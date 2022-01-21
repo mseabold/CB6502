@@ -5,3 +5,4 @@
 .global console_println
 .global console_printhex
 .global console_newline
+.global console_printu32

@@ -1,7 +1,7 @@
 ; vim: set syntax=asm_ca65:
 .include "spi.inc"
-.include "console.inc"
 .include "sdcard.inc"
+.include "macros.inc"
 
 .define R1_READY $00
 .define R1_IDLE  $01
@@ -21,19 +21,12 @@ spi_buf: .res 2
 .bss
 r7_buf: .res 4
 spi_crc: .res 1
+buf_len: .res 2
 
 .rodata
 zero_param: .dword 0
 CMD8_param: .byte $00, $00, $01, $aa
 ACMD41_param: .byte $40, $00, $00, $00
-wait_msg: .asciiz "Waiting..."
-zero_msg: .asciiz "Send CMD0..."
-rsp_msg: .asciiz "Get Response..."
-cmd8_msg: .asciiz "Send CMD8..."
-cmd0_rsp_msg: .asciiz "CMD0 response: "
-r7_a: .asciiz "Reading R7"
-r7_b: .asciiz "R7 done"
-acmd41_msg: .asciiz "Sending ACMD41..."
 
 .code
 send_cmd:
@@ -52,9 +45,6 @@ send_cmd:
     ldx #$87
     stx spi_crc
 
-    ;lda #<wait_msg
-    ;ldy #>wait_msg
-    ;jsr console_println
 @wait_init:
     ldx #$ff
 @init_loop:
@@ -80,17 +70,10 @@ send_cmd:
     lda spi_crc
     jsr spi_transfer_byte
 
-    lda #<wait_msg
-    ldy #>wait_msg
-    jsr console_println
     ldy #$ff
 @wait_rsp:
     lda #$ff
     jsr spi_transfer_byte
-    pha
-    jsr console_printhex
-    jsr console_newline
-    pla
     bit #$80
     bne @wait_rsp
 
@@ -99,26 +82,16 @@ send_cmd:
 
 read_r7:
     ldx #0
-    lda #<r7_a
-    ldy #>r7_a
-    jsr console_println
 @read_loop:
     lda #$ff
     phx
     jsr spi_transfer_byte
-    pha
-    jsr console_printhex
-    jsr console_newline
-    pla
     plx
     sta r7_buf,X
     inx
     txa
     cmp #4
     bne @read_loop
-    lda #<r7_b
-    ldy #>r7_b
-    jsr console_println
     rts
 
 sdcard_init:
@@ -133,10 +106,6 @@ sdcard_init:
     lda #SPI_SLAVE_0
     jsr spi_select_slave
 
-    lda #<zero_msg
-    ldy #>zero_msg
-    jsr console_println
-
     lda #<zero_param
     sta spi_param
     lda #>zero_param
@@ -146,15 +115,6 @@ sdcard_init:
 @cmd0_loop:
     lda #CMD0
     jsr send_cmd
-    pha
-    pha
-    lda #<cmd0_rsp_msg
-    ldy #>cmd0_rsp_msg
-    jsr console_print
-    pla
-    jsr console_printhex
-    jsr console_newline
-    pla
     cmp #1
     beq @cmd8 ;TODO limit retries
     dex
@@ -166,10 +126,6 @@ sdcard_init:
     rts
 
 @cmd8:
-    lda #<cmd8_msg
-    ldy #>cmd8_msg
-    jsr console_println
-
     lda #<CMD8_param
     sta spi_param
     lda #>CMD8_param
@@ -178,10 +134,6 @@ sdcard_init:
 
     jsr send_cmd
     jsr read_r7
-
-    lda #<acmd41_msg
-    ldy #>acmd41_msg
-    jsr console_println
 
     ldx #10
 @acmd41_loop:
@@ -211,20 +163,34 @@ sdcard_init:
 ; Params
 ; 4 byte address/block
 ; 2 byte output buffer pointer
-sdcard_read_block:
+; 2 byte size
+sdcard_read_block_partial:
     sta spi_param
     stx spi_param+1
+    ldy #6
+    lda (spi_param),Y
+    sta buf_len
+    iny
+    lda (spi_param),Y
+    sta buf_len+1
+
+do_read:
     ldy #4
     lda (spi_param),Y
     sta spi_buf
     iny
     lda (spi_param),Y
-    stx spi_buf+1
+    sta spi_buf+1
 
     lda #SPI_SLAVE_0
     jsr spi_select_slave
     lda #CMD17
     jsr send_cmd
+
+    cmp #0
+    beq @wait_block
+    lda #$ff
+    rts
 
 @wait_block:
     lda #$ff
@@ -240,19 +206,50 @@ sdcard_read_block:
     rts
 
 @data_read:
-    ldx #2
+    ldx #0
     ldy #0
 @loop:
     lda #$ff
     jsr spi_transfer_byte
     sta (spi_buf),Y
     iny
-    bne @loop
+    bne @check_len
     inc spi_buf+1
-    dex
+    inx
+@check_len:
+    cpy buf_len
     bne @loop
+    cpx buf_len+1
+    bne @loop
+
+    cpx #2
+    beq @crc
+
+@loop2:
+    lda #$ff
+    jsr spi_transfer_byte
+    iny
+    bne @loop2
+    inc spi_buf+1
+    inx
+    cpx #2
+    bne @loop2
+
+@crc:
+    ; CRC
+    lda #$ff
+    jsr spi_transfer_byte
+    lda #$ff
+    jsr spi_transfer_byte
 
     lda #SPI_SLAVE_0
     jsr spi_deselect_slave
+
+    lda #0
     rts
 
+sdcard_read_block:
+    sta spi_param
+    stx spi_param+1
+    _SET_IM16 buf_len,$0200
+    jmp do_read

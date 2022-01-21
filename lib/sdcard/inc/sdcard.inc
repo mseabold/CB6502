@@ -2,4 +2,5 @@
 
 .global sdcard_init
 .global sdcard_read_block
+.global sdcard_read_block_partial
 
