@@ -5,6 +5,8 @@
  *
  */
 #include <stdint.h>
+#include <stddef.h>
+#include <stdbool.h>
 
 /* 
  * Callback function prototypes for 6502 memory space access.
@@ -57,3 +59,5 @@ void step6502(void);
  * can "pull down" the IRQ line and the IRQ handler will continue to be processed
  * since it is level triggered.
  */
+void disassemble(size_t bufLen, char *buf);
+bool isBreakpoint(uint16_t pc);
