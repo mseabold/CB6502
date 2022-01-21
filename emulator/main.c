@@ -10,16 +10,16 @@
 #include "acia.h"
 
 #define ROM_SIZE 0x8000
-#define RAM_SIZE 0x4000
-#define ACIA_SIZE 0x1000
-#define VIA_SIZE 0x1000
+#define RAM_SIZE 0x8000
+#define ACIA_SIZE 0x0010
+#define VIA_SIZE 0x0010
 
 #define RAM_BASE 0x0000
-#define ROM_BASE 0x8000
-#define ACIA_BASE 0x5000
-#define VIA_BASE 0x6000
+#define ROM_BASE 0x8080
+#define ACIA_BASE 0x8000
+#define VIA_BASE 0x8010
 
-#define STEP
+//#define STEP
 
 static uint8_t RAM[RAM_SIZE];
 static uint8_t ROM[ROM_SIZE];
@@ -34,9 +34,9 @@ static uint8_t memory_read(uint16_t address)
     {
         value = RAM[address-RAM_BASE];
     }
-    else if(ADDR_IN_REGION(address, ROM_BASE, ROM_SIZE))
+    else if(ADDR_IN_REGION(address, ROM_BASE, ROM_SIZE-0x80))
     {
-        value = ROM[address-ROM_BASE];
+        value = ROM[address-0x8000];
     }
     else if(ADDR_IN_REGION(address, VIA_BASE, VIA_SIZE))
     {
@@ -110,7 +110,18 @@ int main(int argc, char *argv[])
         fprintf(stderr, "WARNING: ROM file does not fill up ROM. Some of ROM may be unitialized/0.\n");
     }
 
+    if(!acia_init())
+    {
+        fprintf(stderr, "Unable to initialize ACIA\n");
+        return 1;
+    }
+
     init6502(memory_read, memory_write);
+
+    {
+        char buf[16];
+        fgets(buf, 16, stdin);
+    }
 
     while(1)
     {
