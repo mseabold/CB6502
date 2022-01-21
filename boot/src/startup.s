@@ -59,6 +59,7 @@ reset_handler:
 
     jsr spi_init
     jsr sdcard_init
+    beq @failed
     jsr fat_init
 
     lda #<opening_str
