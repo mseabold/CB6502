@@ -196,9 +196,9 @@ fat_init:
     sta fat_sector
     bcc @l1
     inc fat_sector+1
-    bcc @l1
+    bne @l1
     inc fat_sector+2
-    bcc @l1
+    bne @l1
     inc fat_sector+3
 
 @l1:
@@ -410,11 +410,11 @@ fat_open:
     dec dircount
     bne @advance
     inc dir_cxt + FileContext::sector
-    bcc @next_sector
+    bne @next_sector
     inc dir_cxt + FileContext::sector + 1
-    bcc @next_sector
+    bne @next_sector
     inc dir_cxt + FileContext::sector + 2
-    bcc @next_sector
+    bne @next_sector
     inc dir_cxt + FileContext::sector + 3
 
 @next_sector:

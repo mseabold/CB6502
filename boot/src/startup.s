@@ -59,9 +59,22 @@ reset_handler:
 
     jsr spi_init
     jsr sdcard_init
-    beq @failed
-    jsr fat_init
+    bne @open_fat
+    lda #<sdfailed_str
+    ldy #>sdfailed_str
+    jsr console_println
+    jmp forever
 
+
+@open_fat:
+    jsr fat_init
+    bpl @open_fat2
+    lda #<fatfailed_str
+    ldy #>fatfailed_str
+    jsr console_println
+    jmp forever
+
+@open_fat2:
     lda #<opening_str
     ldy #>opening_str
     jsr console_println
@@ -120,3 +133,5 @@ opening_str: .asciiz "Opening"
 reading_str: .asciiz "Reading"
 jumping_str: .asciiz "Jumping"
 failed_str: .asciiz "Failed to load program"
+sdfailed_str: .asciiz "Failed to init SD"
+fatfailed_str: .asciiz "Failed to init FAT"

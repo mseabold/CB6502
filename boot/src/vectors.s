@@ -23,7 +23,7 @@ irq_isr:
     rti
 
 .segment "VECTORS"
-.word irq_isr
-.word reset_handler
 .word default_vector
+.word reset_handler
+.word irq_isr
 
