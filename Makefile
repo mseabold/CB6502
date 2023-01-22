@@ -4,6 +4,12 @@ LD := ld65
 AR := ar65
 CPUFLAGS := --cpu 65c02
 
+ifeq (${V},1)
+hide :=
+else
+hide := @
+endif
+
 BOOT_SRCS := \
 	boot/src/vectors.s \
 	boot/src/startup.s \
@@ -78,40 +84,50 @@ clean:
 
 $(OUTPUT)/bin/boot.bin $(OUTPUT)/bin/boot.map: $(BOOT_OBJS) boot/src/boot.ld $(BOOT_LIBS)
 	@mkdir -p $(@D)
-	$(LD) -o $@ -C boot/src/boot.ld -L$(OUTPUT)/lib -vm -m$(OUTPUT)/bin/boot.map  $(BOOT_OBJS) $(BOOT_LIBS) -Ln ${OUTPUT}/boot.lbl --dbgfile ${OUTPUT}/boot.dbg
+	@echo "[link] $@"
+	$(hide)$(LD) -o $@ -C boot/src/boot.ld -L$(OUTPUT)/lib -vm -m$(OUTPUT)/bin/boot.map  $(BOOT_OBJS) $(BOOT_LIBS) -Ln ${OUTPUT}/boot.lbl --dbgfile ${OUTPUT}/boot.dbg
 
 $(OUTPUT)/app/app.bin $(OUTPUT)/app/app.map: $(APP_OBJS) app/test/src/app.ld $(APP_LIBS)
 	@mkdir -p $(@D)
-	$(LD) -o $@ -C app/test/src/app.ld -L$(OUTPUT)/lib -vm -m$(OUTPUT)/app/app.map  $(APP_OBJS) $(APP_LIBS)
+	@echo "[link] $@"
+	$(hide)$(LD) -o $@ -C app/test/src/app.ld -L$(OUTPUT)/lib -vm -m$(OUTPUT)/app/app.map  $(APP_OBJS) $(APP_LIBS)
 
 $(OUTPUT)/obj/%.o: %.s
 	@mkdir -p $(@D)
-	$(ASM) $(INCLD:%=-I %) $(CPUFLAGS) --create-full-dep $(@:%.o=%.d) -g -o $@ $<
+	@echo "[asm] $<"
+	$(hide)$(ASM) $(INCLD:%=-I %) $(CPUFLAGS) --create-full-dep $(@:%.o=%.d) -g -o $@ $<
 
 $(OUTPUT)/lib/uart.lib: $(UART_OBJS)
 	@mkdir -p $(@D)
-	$(AR) r $@ $^
+	@echo "[ar] $@"
+	$(hide)$(AR) r $@ $^
 
 $(OUTPUT)/lib/console.lib: $(CONSOLE_OBJS)
 	@mkdir -p $(@D)
-	$(AR) r $@ $^
+	@echo "[ar] $@"
+	$(hide)$(AR) r $@ $^
 
 $(OUTPUT)/lib/via.lib: $(VIA_OBJS)
 	@mkdir -p $(@D)
-	$(AR) r $@ $^
+	@echo "[ar] $@"
+	$(hide)$(AR) r $@ $^
 
 $(OUTPUT)/lib/spi.lib: $(SPI_OBJS)
 	@mkdir -p $(@D)
-	$(AR) r $@ $^
+	@echo "[ar] $@"
+	$(hide)$(AR) r $@ $^
 
 $(OUTPUT)/lib/sdcard.lib: $(SDCARD_OBJS)
 	@mkdir -p $(@D)
-	$(AR) r $@ $^
+	@echo "[ar] $@"
+	$(hide)$(AR) r $@ $^
 
 $(OUTPUT)/lib/fat.lib: $(FAT_OBJS)
 	@mkdir -p $(@D)
-	$(AR) r $@ $^
+	@echo "[ar] $@"
+	$(hide)$(AR) r $@ $^
 
 $(OUTPUT)/lib/runtime.lib: $(RUNTIME_OBJS)
 	@mkdir -p $(@D)
-	$(AR) r $@ $^
+	@echo "[ar] $@"
+	$(hide)$(AR) r $@ $^
