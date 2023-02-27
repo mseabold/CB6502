@@ -568,13 +568,14 @@ fat_read:
     jsr sdcard_read_block
 
     inc file_cxt + FileContext::sector
-    bcc @ret
+    bne @subsize
     inc file_cxt + FileContext::sector+1
-    bcc @ret
+    bne @subsize
     inc file_cxt + FileContext::sector+2
-    bcc @ret
+    bne @subsize
     inc file_cxt + FileContext::sector+3
 
+@subsize:
     sec
     lda filesize
     sbc read_params+6
@@ -582,12 +583,13 @@ fat_read:
     lda filesize + 1
     sbc read_params+7
     sta filesize + 1
-    bcs @check_zero
-    dec filesize+2
-    bcs @check_zero
-    dec filesize+3
+    lda filesize + 2
+    sbc #0
+    sta filesize + 2
+    lda filesize + 3
+    sbc #0
+    sta filesize + 3
 
-@check_zero:
     lda filesize
     ora filesize+1
     ora filesize+2
