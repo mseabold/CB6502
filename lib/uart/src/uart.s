@@ -70,17 +70,17 @@ uart_isr:
 
 .global uart_init
 uart_init:
-    sta uart_callback
-    stx uart_callback+1
+    ;sta uart_callback
+    ;stx uart_callback+1
 
-    lda #<uart_isr
-    sta ACIA_isr
-    lda #>uart_isr
-    sta ACIA_isr+1
+    ;lda #<uart_isr
+    ;sta ACIA_isr
+    ;lda #>uart_isr
+    ;sta ACIA_isr+1
 
-    lda #0
-    sta uart_tx_read_idx
-    sta uart_tx_write_idx
+    ;lda #0
+    ;sta uart_tx_read_idx
+    ;sta uart_tx_write_idx
 
     lda #(CMD_DTR_RDY | CMD_RX_INTR_EN | CMD_RTSL_TX_ISR_DIS)
     sta ACIA_UART+ACIA_REGS::CMD
@@ -113,18 +113,9 @@ uart_write:
 
 .global uart_read
 uart_read:
-    ldy uart_tx_read_idx
-    cpy uart_tx_write_idx
-    bne @read
-    lda #0
-    rts
+    lda #$08
+    and ACIA_UART+ACIA_REGS::STATUS
+    beq uart_read
 
-@read:
-    ldx uart_tx_buffer,Y
-    inc uart_tx_read_idx
-    iny
-    tya
-    and #63
-    sta uart_tx_read_idx
-    lda #1
+    lda ACIA_UART+ACIA_REGS::DATA
     rts
