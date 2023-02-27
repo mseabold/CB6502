@@ -28,8 +28,7 @@
 ; Read a byte from the UART
 ;
 ; Returns:
-;    A: Status of the read: 1 = Read, 0 = Buffer empty
-;    X: Byte read of successful
+;    A: Byte read
 .global uart_read
 
 
