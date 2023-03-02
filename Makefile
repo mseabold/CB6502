@@ -1,4 +1,5 @@
 OUTPUT ?= out
+TOOLS ?= tools
 ASM := ca65
 LD := ld65
 AR := ar65
@@ -14,28 +15,28 @@ BOOT_SRCS := \
 	boot/src/vectors.s \
 	boot/src/startup.s \
 
-UART_SRC := \
+uart_SRC := \
 	lib/uart/src/uart.s
 
-VIA_SRC := \
+via_SRC := \
 	lib/via/src/via.s
 
-CONSOLE_SRC := \
+console_SRC := \
 	lib/console/src/console.s
 
-SPI_SRC := \
+spi_SRC := \
 	lib/spi/src/spi.s
 
-SDCARD_SRC := \
+sdcard_SRC := \
 	lib/sdcard/src/sdcard.s
 
-FAT_SRC := \
+fat_SRC := \
 	lib/fat/src/fat.s
 
-RUNTIME_SRC := \
+runtime_SRC := \
 	lib/runtime/src/mem.s
 
-IHEX_SRC := \
+ihex_SRC := \
 	lib/ihex/src/ihex.s
 
 BOOTOUT := \
@@ -52,15 +53,19 @@ INCLD := \
 	lib/runtime/inc \
 	lib/ihex/inc
 
+LIBNAMES := \
+	uart \
+	console \
+	via \
+	spi \
+	sdcard \
+	fat \
+	runtime \
+	ihex
+
+LIBRARIES := $(LIBNAMES:%=$(OUTPUT)/lib/%.lib)
+
 BOOT_OBJS := $(BOOT_SRCS:%.s=$(OUTPUT)/obj/%.o)
-UART_OBJS := $(UART_SRC:%.s=$(OUTPUT)/obj/%.o)
-CONSOLE_OBJS := $(CONSOLE_SRC:%.s=$(OUTPUT)/obj/%.o)
-VIA_OBJS := $(VIA_SRC:%.s=$(OUTPUT)/obj/%.o)
-SPI_OBJS := $(SPI_SRC:%.s=$(OUTPUT)/obj/%.o)
-SDCARD_OBJS := $(SDCARD_SRC:%.s=$(OUTPUT)/obj/%.o)
-FAT_OBJS := $(FAT_SRC:%.s=$(OUTPUT)/obj/%.o)
-RUNTIME_OBJS := $(RUNTIME_SRC:%.s=$(OUTPUT)/obj/%.o)
-IHEX_OBJS :=  $(IHEX_SRC:%.s=$(OUTPUT)/obj/%.o)
 
 BOOT_LIBS := \
 	$(OUTPUT)/lib/fat.lib \
@@ -75,10 +80,22 @@ BOOT_LIBS := \
 BOOT_BIN := \
 	$(BOOTOUT)/bin/boot.bin \
 
-.PHONY:
-all: $(BOOT_BIN)
+BOOT_ARTIFACTS := \
+	$(BOOT_BIN) \
+	$(BOOT_BIN:%.bin=%.ihex)
 
-ALL_OBJS := $(BOOT_OBJS) $(UART_OBJS) $(CONSOLE_OBJS) $(VIA_OBJS) $(SPI_OBJS) $(SDCARD_OBJS) $(FAT_OBJS) $(RUNTIME_OBJS)
+.PHONY:
+all: $(BOOT_ARTIFACTS)
+
+ALL_OBJS := $(BOOT_OBJS)
+
+define deflib =
+$(1)_OBJS := $$($(1)_SRC:%.s=$(OUTPUT)/obj/%.o)
+$(OUTPUT)/lib/$(1).lib: $$($(1)_OBJS)
+ALL_OBJS += $$($(1)_OBJS)
+endef
+
+$(foreach lib,$(LIBNAMES),$(eval $(call deflib,$(lib))))
 
 -include $(ALL_OBJS:%.o=%.d)
 
@@ -96,42 +113,11 @@ $(OUTPUT)/obj/%.o: %.s
 	@echo "[asm] $<"
 	$(hide)$(ASM) $(INCLD:%=-I %) $(LOCALINCLD) $(LOCALDEF) $(CPUFLAGS) --create-full-dep $(@:%.o=%.d) -g -o $@ $<
 
-$(OUTPUT)/lib/uart.lib: $(UART_OBJS)
+$(LIBRARIES):
 	@mkdir -p $(@D)
-	@echo "[ar] $@"
+	@echo "[ar] $@ $^"
 	$(hide)$(AR) r $@ $^
 
-$(OUTPUT)/lib/console.lib: $(CONSOLE_OBJS)
-	@mkdir -p $(@D)
-	@echo "[ar] $@"
-	$(hide)$(AR) r $@ $^
-
-$(OUTPUT)/lib/via.lib: $(VIA_OBJS)
-	@mkdir -p $(@D)
-	@echo "[ar] $@"
-	$(hide)$(AR) r $@ $^
-
-$(OUTPUT)/lib/spi.lib: $(SPI_OBJS)
-	@mkdir -p $(@D)
-	@echo "[ar] $@"
-	$(hide)$(AR) r $@ $^
-
-$(OUTPUT)/lib/sdcard.lib: $(SDCARD_OBJS)
-	@mkdir -p $(@D)
-	@echo "[ar] $@"
-	$(hide)$(AR) r $@ $^
-
-$(OUTPUT)/lib/fat.lib: $(FAT_OBJS)
-	@mkdir -p $(@D)
-	@echo "[ar] $@"
-	$(hide)$(AR) r $@ $^
-
-$(OUTPUT)/lib/runtime.lib: $(RUNTIME_OBJS)
-	@mkdir -p $(@D)
-	@echo "[ar] $@"
-	$(hide)$(AR) r $@ $^
-
-$(OUTPUT)/lib/ihex.lib: $(IHEX_OBJS)
-	@mkdir -p $(@D)
-	@echo "[ar $@"
-	$(hide)$(AR) r $@ $^
+%.ihex: %.bin
+	@echo "[ihex] $@"
+	$(hide)python $(TOOLS)/to_ihex.py -o $@ $<
