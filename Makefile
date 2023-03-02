@@ -88,13 +88,9 @@ BOOT_ARTIFACTS := \
 .PHONY:
 all: $(BOOT_ARTIFACTS)
 
-ALL_OBJS := $(BOOT_OBJS)
+include build/common.mk
 
-define deflib =
-$(1)_OBJS := $$($(1)_SRC:%.s=$(OUTPUT)/obj/%.o)
-$(OUTPUT)/lib/$(1).lib: $$($(1)_OBJS)
-ALL_OBJS += $$($(1)_OBJS)
-endef
+ALL_OBJS := $(BOOT_OBJS)
 
 $(foreach lib,$(LIBNAMES),$(eval $(call deflib,$(lib))))
 
@@ -109,20 +105,7 @@ $(BOOT_BIN) $(BOOTOUT)/boot.map: $(BOOT_OBJS) boot/src/boot.ld $(BOOT_LIBS)
 	@echo "[link] $@"
 	$(hide)$(LD) -o $@ -C boot/src/boot.ld -L $(BOOTOUT)/lib -vm -m$(BOOTOUT)/boot.map  $(BOOT_OBJS) $(BOOT_LIBS) -Ln ${BOOTOUT}/boot.lbl --dbgfile ${BOOTOUT}/boot.dbg
 
-$(OUTPUT)/obj/%.o: %.s
-	@mkdir -p $(@D)
-	@echo "[asm] $<"
-	$(hide)$(ASM) $(INCLD:%=-I %) $(LOCALINCLD) $(LOCALDEF) $(CPUFLAGS) --create-full-dep $(@:%.o=%.d) -g -o $@ $<
-
 $(LIBRARIES):
 	@mkdir -p $(@D)
 	@echo "[ar] $@ $^"
 	$(hide)$(AR) r $@ $^
-
-%.ihex: %.bin
-	@echo "[ihex] $@"
-	$(hide)python $(TOOLS)/to_ihex.py -o $@ $<
-
-%_exp.inc: %.map
-	@echo "[exp] $@"
-	$(hide)python $(TOOLS)/create_exports.py -f -o $@ $^
