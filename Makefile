@@ -78,11 +78,12 @@ BOOT_LIBS := \
 	$(OUTPUT)/lib/ihex.lib \
 
 BOOT_BIN := \
-	$(BOOTOUT)/bin/boot.bin \
+	$(BOOTOUT)/boot.bin \
 
 BOOT_ARTIFACTS := \
 	$(BOOT_BIN) \
-	$(BOOT_BIN:%.bin=%.ihex)
+	$(BOOT_BIN:%.bin=%.ihex) \
+	$(BOOT_BIN:%.bin=%_exp.inc)
 
 .PHONY:
 all: $(BOOT_ARTIFACTS)
@@ -103,10 +104,10 @@ $(foreach lib,$(LIBNAMES),$(eval $(call deflib,$(lib))))
 clean:
 	rm -rf $(OUTPUT)
 
-$(BOOT_BIN) $(BOOTOUT)/bin/boot.map: $(BOOT_OBJS) boot/src/boot.ld $(BOOT_LIBS)
+$(BOOT_BIN) $(BOOTOUT)/boot.map: $(BOOT_OBJS) boot/src/boot.ld $(BOOT_LIBS)
 	@mkdir -p $(@D)
 	@echo "[link] $@"
-	$(hide)$(LD) -o $@ -C boot/src/boot.ld -L $(BOOTOUT)/lib -vm -m$(BOOTOUT)/bin/boot.map  $(BOOT_OBJS) $(BOOT_LIBS) -Ln ${BOOTOUT}/boot.lbl --dbgfile ${BOOTOUT}/boot.dbg
+	$(hide)$(LD) -o $@ -C boot/src/boot.ld -L $(BOOTOUT)/lib -vm -m$(BOOTOUT)/boot.map  $(BOOT_OBJS) $(BOOT_LIBS) -Ln ${BOOTOUT}/boot.lbl --dbgfile ${BOOTOUT}/boot.dbg
 
 $(OUTPUT)/obj/%.o: %.s
 	@mkdir -p $(@D)
@@ -121,3 +122,7 @@ $(LIBRARIES):
 %.ihex: %.bin
 	@echo "[ihex] $@"
 	$(hide)python $(TOOLS)/to_ihex.py -o $@ $<
+
+%_exp.inc: %.map
+	@echo "[exp] $@"
+	$(hide)python $(TOOLS)/create_exports.py -f -o $@ $^
