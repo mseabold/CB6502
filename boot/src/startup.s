@@ -8,6 +8,7 @@
 .include "fat.inc"
 .include "macros.inc"
 .include "mem.inc"
+.include "ihex.inc"
 .import __ACIA_START__
 
 .define RAMPRG_START $1000
@@ -81,6 +82,7 @@ reset_handler:
     lda #<open_file
     ldx #>open_file
     jsr fat_open
+    bmi wait_console
     jsr console_printhex
     jsr console_newline
 
@@ -105,7 +107,7 @@ reset_handler:
     lda #<fat_params
     ldx #>fat_params
     jsr fat_read
-    bmi @failed
+    bmi failed
     inc fat_params + FATReadParams::buffer + 1
     inc fat_params + FATReadParams::buffer + 1
     lda fat_params + FATReadParams::bytes_read
@@ -117,7 +119,7 @@ reset_handler:
     jsr console_println
     jmp RAMPRG_START
 
-@failed:
+failed:
     lda #<failed_str
     ldy #>failed_str
     jsr console_println
@@ -125,6 +127,20 @@ reset_handler:
 forever:
     wai
     jmp forever
+
+wait_console:
+    jsr load_ihex
+    bmi failed
+    jmp RAMPRG_START
+
+;@wait_enter:
+;    jsr uart_read
+;    cmp #$0d
+;    bne @wait_enter
+    lda #$15
+    jsr uart_write
+@inf:
+    bra @inf
 
 .rodata
 open_file: .asciiz "AUTOBOOTBIN"
@@ -135,3 +151,5 @@ jumping_str: .asciiz "Jumping"
 failed_str: .asciiz "Failed to load program"
 sdfailed_str: .asciiz "Failed to init SD"
 fatfailed_str: .asciiz "Failed to init FAT"
+press_enter_str: .asciiz "Press ENTER to start YMODEM"
+enter_str: .asciiz "Enter pressed"

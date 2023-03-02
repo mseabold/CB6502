@@ -35,8 +35,11 @@ FAT_SRC := \
 RUNTIME_SRC := \
 	lib/runtime/src/mem.s
 
-APP_SRC := \
-	app/test/src/app.s
+IHEX_SRC := \
+	lib/ihex/src/ihex.s
+
+BOOTOUT := \
+	$(OUTPUT)/boot
 
 INCLD := \
 	boot/inc \
@@ -46,17 +49,18 @@ INCLD := \
 	lib/spi/inc \
 	lib/sdcard/inc \
 	lib/fat/inc \
-	lib/runtime/inc
+	lib/runtime/inc \
+	lib/ihex/inc
 
-BOOT_OBJS := $(BOOT_SRCS:%.s=out/obj/%.o)
-UART_OBJS := $(UART_SRC:%.s=out/obj/%.o)
-CONSOLE_OBJS := $(CONSOLE_SRC:%.s=out/obj/%.o)
-VIA_OBJS := $(VIA_SRC:%.s=out/obj/%.o)
-SPI_OBJS := $(SPI_SRC:%.s=out/obj/%.o)
-SDCARD_OBJS := $(SDCARD_SRC:%.s=out/obj/%.o)
-FAT_OBJS := $(FAT_SRC:%.s=out/obj/%.o)
-RUNTIME_OBJS := $(RUNTIME_SRC:%.s=out/obj/%.o)
-APP_OBJS := $(APP_SRC:%.s=out/obj/%.o)
+BOOT_OBJS := $(BOOT_SRCS:%.s=$(OUTPUT)/obj/%.o)
+UART_OBJS := $(UART_SRC:%.s=$(OUTPUT)/obj/%.o)
+CONSOLE_OBJS := $(CONSOLE_SRC:%.s=$(OUTPUT)/obj/%.o)
+VIA_OBJS := $(VIA_SRC:%.s=$(OUTPUT)/obj/%.o)
+SPI_OBJS := $(SPI_SRC:%.s=$(OUTPUT)/obj/%.o)
+SDCARD_OBJS := $(SDCARD_SRC:%.s=$(OUTPUT)/obj/%.o)
+FAT_OBJS := $(FAT_SRC:%.s=$(OUTPUT)/obj/%.o)
+RUNTIME_OBJS := $(RUNTIME_SRC:%.s=$(OUTPUT)/obj/%.o)
+IHEX_OBJS :=  $(IHEX_SRC:%.s=$(OUTPUT)/obj/%.o)
 
 BOOT_LIBS := \
 	$(OUTPUT)/lib/fat.lib \
@@ -66,13 +70,13 @@ BOOT_LIBS := \
 	$(OUTPUT)/lib/spi.lib \
 	$(OUTPUT)/lib/via.lib \
 	$(OUTPUT)/lib/runtime.lib \
+	$(OUTPUT)/lib/ihex.lib \
 
-APP_LIBS := \
-	$(OUTPUT)/lib/console.lib \
-	$(OUTPUT)/lib/uart.lib \
+BOOT_BIN := \
+	$(BOOTOUT)/bin/boot.bin \
 
 .PHONY:
-all: $(OUTPUT)/bin/boot.bin $(OUTPUT)/app/app.bin
+all: $(BOOT_BIN)
 
 ALL_OBJS := $(BOOT_OBJS) $(UART_OBJS) $(CONSOLE_OBJS) $(VIA_OBJS) $(SPI_OBJS) $(SDCARD_OBJS) $(FAT_OBJS) $(RUNTIME_OBJS)
 
@@ -82,20 +86,15 @@ ALL_OBJS := $(BOOT_OBJS) $(UART_OBJS) $(CONSOLE_OBJS) $(VIA_OBJS) $(SPI_OBJS) $(
 clean:
 	rm -rf $(OUTPUT)
 
-$(OUTPUT)/bin/boot.bin $(OUTPUT)/bin/boot.map: $(BOOT_OBJS) boot/src/boot.ld $(BOOT_LIBS)
+$(BOOT_BIN) $(BOOTOUT)/bin/boot.map: $(BOOT_OBJS) boot/src/boot.ld $(BOOT_LIBS)
 	@mkdir -p $(@D)
 	@echo "[link] $@"
-	$(hide)$(LD) -o $@ -C boot/src/boot.ld -L$(OUTPUT)/lib -vm -m$(OUTPUT)/bin/boot.map  $(BOOT_OBJS) $(BOOT_LIBS) -Ln ${OUTPUT}/boot.lbl --dbgfile ${OUTPUT}/boot.dbg
-
-$(OUTPUT)/app/app.bin $(OUTPUT)/app/app.map: $(APP_OBJS) app/test/src/app.ld $(APP_LIBS)
-	@mkdir -p $(@D)
-	@echo "[link] $@"
-	$(hide)$(LD) -o $@ -C app/test/src/app.ld -L$(OUTPUT)/lib -vm -m$(OUTPUT)/app/app.map  $(APP_OBJS) $(APP_LIBS)
+	$(hide)$(LD) -o $@ -C boot/src/boot.ld -L $(BOOTOUT)/lib -vm -m$(BOOTOUT)/bin/boot.map  $(BOOT_OBJS) $(BOOT_LIBS) -Ln ${BOOTOUT}/boot.lbl --dbgfile ${BOOTOUT}/boot.dbg
 
 $(OUTPUT)/obj/%.o: %.s
 	@mkdir -p $(@D)
 	@echo "[asm] $<"
-	$(hide)$(ASM) $(INCLD:%=-I %) $(CPUFLAGS) --create-full-dep $(@:%.o=%.d) -g -o $@ $<
+	$(hide)$(ASM) $(INCLD:%=-I %) $(LOCALINCLD) $(LOCALDEF) $(CPUFLAGS) --create-full-dep $(@:%.o=%.d) -g -o $@ $<
 
 $(OUTPUT)/lib/uart.lib: $(UART_OBJS)
 	@mkdir -p $(@D)
@@ -130,4 +129,9 @@ $(OUTPUT)/lib/fat.lib: $(FAT_OBJS)
 $(OUTPUT)/lib/runtime.lib: $(RUNTIME_OBJS)
 	@mkdir -p $(@D)
 	@echo "[ar] $@"
+	$(hide)$(AR) r $@ $^
+
+$(OUTPUT)/lib/ihex.lib: $(IHEX_OBJS)
+	@mkdir -p $(@D)
+	@echo "[ar $@"
 	$(hide)$(AR) r $@ $^
