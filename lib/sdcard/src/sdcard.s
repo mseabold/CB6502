@@ -2,6 +2,9 @@
 .include "spi.inc"
 .include "sdcard.inc"
 .include "macros.inc"
+.include "via.inc"
+
+DETECT_VIA = VIA0
 
 .define R1_READY $00
 .define R1_IDLE  $01
@@ -253,3 +256,8 @@ sdcard_read_block:
     stx spi_param+1
     _SET_IM16 buf_len,$0200
     jmp do_read
+
+sdcard_detect:
+    lda DETECT_VIA + VIA_REGS::DATAB
+    and #$80
+    rts

@@ -11,6 +11,20 @@ else
 hide := @
 endif
 
+BOOTVER :=
+
+ifdef BOOTVER_MAJOR
+BOOTVER += -D VERSION_MAJOR=$(BOOTVER_MAJOR)
+endif
+
+ifdef BOOTVER_MINOR
+BOOTVER += -D VERSION_MINOR=$(BOOTVER_MINOR)
+endif
+
+ifdef BOOTVER_STEP
+BOOTVER += -D VERSION_STEP=$(BOOTVER_STEP)
+endif
+
 BOOT_SRCS := \
 	boot/src/vectors.s \
 	boot/src/startup.s \
@@ -113,6 +127,7 @@ boot: $(BOOT_ARTIFACTS)
 apps: boot
 	@$(MAKE) -C app
 
+$(BOOT_OBJS): LOCALDEF := $(BOOTVER)
 $(BOOT_BIN) $(BOOTOUT)/boot.map: $(BOOT_OBJS) boot/src/boot.ld $(BOOT_LIBS)
 	@mkdir -p $(@D)
 	@echo "[link] $@"

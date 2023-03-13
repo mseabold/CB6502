@@ -7,7 +7,7 @@ SPI_VIA = VIA0
 ; bit 0 = CLK
 ; bit 1 = MOSI
 ; bit 2 = MISO
-; bits 4-7 = SSs
+; bits 4-6 = SSs
 SPI_CLK = $01
 SPI_MOSI = $02
 SPI_MISO = $04
@@ -20,11 +20,11 @@ tmp_dbg: .res 1
 .code
 spi_init:
     ; Configure CLK, MOSI, and SSs as output, MISO as input
-    lda #$f3
+    lda #$73
     sta SPI_VIA+VIA_REGS::DDRB
 
     ; No slaves selected at boot and MODE0 is used exclusively for now, so CLK is idle low
-    lda #$f0
+    lda #$70
     sta SPI_VIA+VIA_REGS::DATAB
 
     rts

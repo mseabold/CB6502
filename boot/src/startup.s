@@ -1,4 +1,5 @@
 ; vim: set syntax=asm_ca65:
+.include "version.inc"
 .include "vectors.inc"
 .include "uart.inc"
 .include "console.inc"
@@ -58,13 +59,28 @@ reset_handler:
     tax
     jsr uart_init
 
+    lda #<version
+    ldy #>version
+    jsr console_println
+
+    jsr sdcard_detect
+    bne @sddetect
+    lda #<sd_detect_fail_str
+    ldy #>sd_detect_fail_str
+    jsr console_println
+    jmp wait_ihex
+@sddetect:
+    lda #<sd_detect_str
+    ldy #>sd_detect_str
+    jsr console_println
+
     jsr spi_init
     jsr sdcard_init
     bne @open_fat
     lda #<sdfailed_str
     ldy #>sdfailed_str
     jsr console_println
-    jmp forever
+    jmp wait_ihex
 
 
 @open_fat:
@@ -73,28 +89,19 @@ reset_handler:
     lda #<fatfailed_str
     ldy #>fatfailed_str
     jsr console_println
-    jmp forever
+    jmp wait_ihex
 
 @open_fat2:
-    lda #<opening_str
-    ldy #>opening_str
-    jsr console_println
     lda #<open_file
     ldx #>open_file
     jsr fat_open
-    bmi wait_console
+    bmi wait_ihex
     jsr console_printhex
     jsr console_newline
 
-    lda #<reading_str
-    ldy #>reading_str
+    lda #<autoboot_found_str
+    ldy #>autoboot_found_str
     jsr console_println
-
-    lda #>RAMPRG_START
-    jsr console_printhex
-    lda #<RAMPRG_START
-    jsr console_printhex
-    jsr console_newline
 
     lda #<RAMPRG_START
     sta fat_params + FATReadParams::buffer
@@ -107,7 +114,7 @@ reset_handler:
     lda #<fat_params
     ldx #>fat_params
     jsr fat_read
-    bmi failed
+    bmi @readfailed
     inc fat_params + FATReadParams::buffer + 1
     inc fat_params + FATReadParams::buffer + 1
     lda fat_params + FATReadParams::bytes_read
@@ -119,37 +126,35 @@ reset_handler:
     jsr console_println
     jmp RAMPRG_START
 
-failed:
-    lda #<failed_str
-    ldy #>failed_str
+@readfailed:
+    lda #<read_failed_str
+    ldy #>read_failed_str
     jsr console_println
 
-forever:
-    wai
-    jmp forever
+wait_ihex:
+    lda #<wait_ihex_str
+    ldy #>wait_ihex_str
+    jsr console_println
 
-wait_console:
     jsr load_ihex
-    bmi failed
+    bmi @ihexfail
     jmp RAMPRG_START
 
-;@wait_enter:
-;    jsr uart_read
-;    cmp #$0d
-;    bne @wait_enter
-    lda #$15
-    jsr uart_write
-@inf:
-    bra @inf
+@ihexfail:
+    lda #<ihex_fail_str
+    ldy #>ihex_fail_str
+    jsr console_println
+    bra wait_ihex
 
 .rodata
+version: .asciiz "CB6502 bootrom v",VERSION_STRING
 open_file: .asciiz "AUTOBOOTBIN"
-result_str: .asciiz "Read Result:"
-opening_str: .asciiz "Opening"
-reading_str: .asciiz "Reading"
-jumping_str: .asciiz "Jumping"
-failed_str: .asciiz "Failed to load program"
 sdfailed_str: .asciiz "Failed to init SD"
 fatfailed_str: .asciiz "Failed to init FAT"
-press_enter_str: .asciiz "Press ENTER to start YMODEM"
-enter_str: .asciiz "Enter pressed"
+sd_detect_str: .asciiz "SD Card Detected. Checking for autoboot"
+sd_detect_fail_str: .asciiz "No SD Card Detected"
+autoboot_found_str: .asciiz "Autoboot binary found. Loading to RAM."
+jumping_str: .asciiz "Jumping to autoboot program"
+wait_ihex_str: .asciiz "No autoboot binary. Waiting for ihex over serial."
+read_failed_str: .asciiz "Failed to read autoboot file."
+ihex_fail_str: .asciiz "failed to parse ihex file"
