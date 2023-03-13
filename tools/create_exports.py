@@ -18,7 +18,6 @@ if __name__ == '__main__':
     parser.add_argument('mapfile', type=argparse.FileType('r'))
     parser.add_argument('-o','--output',type=argparse.FileType('w'), default=sys.stdout)
     parser.add_argument('-f', '--filter-linkersyms', action='store_true', dest='filter')
-    parser
 
     args = parser.parse_args()
 

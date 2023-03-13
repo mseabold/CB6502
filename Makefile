@@ -86,9 +86,15 @@ BOOT_ARTIFACTS := \
 	$(BOOT_BIN:%.bin=%_exp.inc)
 
 .PHONY:
-all: $(BOOT_ARTIFACTS)
+all: boot apps
 
 include build/common.mk
+
+define deflib =
+$(1)_OBJS := $$($(1)_SRC:%.s=$(OUTPUT)/obj/%.o)
+$(OUTPUT)/lib/$(1).lib: $$($(1)_OBJS)
+ALL_OBJS += $$($(1)_OBJS)
+endef
 
 ALL_OBJS := $(BOOT_OBJS)
 
@@ -99,6 +105,13 @@ $(foreach lib,$(LIBNAMES),$(eval $(call deflib,$(lib))))
 .PHONY:
 clean:
 	rm -rf $(OUTPUT)
+
+.PHONY:
+boot: $(BOOT_ARTIFACTS)
+
+.PHONY:
+apps: boot
+	@$(MAKE) -C app
 
 $(BOOT_BIN) $(BOOTOUT)/boot.map: $(BOOT_OBJS) boot/src/boot.ld $(BOOT_LIBS)
 	@mkdir -p $(@D)
