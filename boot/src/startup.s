@@ -96,8 +96,6 @@ reset_handler:
     ldx #>open_file
     jsr fat_open
     bmi wait_ihex
-    jsr console_printhex
-    jsr console_newline
 
     lda #<autoboot_found_str
     ldy #>autoboot_found_str
