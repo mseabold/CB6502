@@ -10,7 +10,18 @@ numbytes: .res 1
 rectype: .res 1
 tmp: .res 1
 
+.data
+read_func: .word read_ihex_uart
+
+
 .code
+read_ihex_uart:
+    jsr uart_read
+    rts
+
+do_read:
+    jmp (read_func)
+
 to_hex:
     sec
     sbc #'0'
@@ -22,14 +33,14 @@ to_hex:
     rts
 
 read_hex:
-    jsr uart_read
+    jsr do_read
     jsr to_hex
     asl
     asl
     asl
     asl
     sta tmp
-    jsr uart_read
+    jsr do_read
     jsr to_hex
     and #$0f
     ora tmp
@@ -37,7 +48,7 @@ read_hex:
 
 load_ihex:
 @start:
-    jsr uart_read
+    jsr do_read
     cmp #':'
     bne @start
 
@@ -100,4 +111,7 @@ load_ihex:
     lda #$ff
     rts
 
-
+set_ihex_read:
+    sta read_func
+    sty read_func+1
+    rts
