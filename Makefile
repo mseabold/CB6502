@@ -4,6 +4,7 @@ ASM := ca65
 LD := ld65
 AR := ar65
 CPUFLAGS := --cpu 65c02
+UPDATE_TOOL ?= $(TOOLS)/pack_update.py
 
 ifeq (${V},1)
 hide :=
@@ -91,13 +92,15 @@ BOOT_LIBS := \
 	$(OUTPUT)/lib/runtime.lib \
 	$(OUTPUT)/lib/ihex.lib \
 
-BOOT_BIN := \
-	$(BOOTOUT)/boot.bin \
+BOOT_BIN := $(BOOTOUT)/boot.bin
+
+BOOT_UPDATE := $(BOOTOUT)/boot_update.bin
 
 BOOT_ARTIFACTS := \
 	$(BOOT_BIN) \
 	$(BOOT_BIN:%.bin=%.ihex) \
-	$(BOOT_BIN:%.bin=%_exp.inc)
+	$(BOOT_BIN:%.bin=%_exp.inc) \
+	$(BOOT_UPDATE)
 
 .PHONY:
 all: boot apps
@@ -137,3 +140,7 @@ $(LIBRARIES):
 	@mkdir -p $(@D)
 	@echo "[ar] $@ $^"
 	$(hide)$(AR) r $@ $^
+
+$(BOOT_UPDATE): $(UPDATE_TOOL) $(BOOT_BIN) $(BOOTOUT)/boot.map
+	@echo "[pack_update] $@"
+	$(hide)python $(UPDATE_TOOL) -vp -o $@ $(BOOT_BIN) $(BOOTOUT)/boot.map
